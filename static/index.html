@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多分类句子管理</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #f1f5f9; margin: 0; padding: 24px 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .card { background: white; border-radius: 24px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .card-header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #eef2ff; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        .card-header h2 { margin: 0; font-size: 1.3rem; }
+        .form-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; align-items: flex-end; }
+        .form-group { flex: 1; min-width: 180px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; }
+        input, select, textarea { width: 100%; padding: 8px 12px; border-radius: 16px; border: 1px solid #cbd5e1; font-size: 0.9rem; }
+        button { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 18px; border-radius: 40px; cursor: pointer; font-weight: 500; }
+        button.primary { background: #3b82f6; color: white; border: none; }
+        button.success { background: #10b981; color: white; border: none; }
+        button.danger { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+        .stats-bar { background: #f8fafc; padding: 10px 16px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 1rem; display: flex; gap: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { text-align: left; padding: 10px 6px; border-bottom: 1px solid #e2e8f0; }
+        .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 1rem; }
+        .badge { background: #eef2ff; padding: 2px 8px; border-radius: 40px; font-size: 0.7rem; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .tag { background: #e2e8f0; padding: 4px 12px; border-radius: 40px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; }
+        .tag button { background: none; border: none; cursor: pointer; color: #ef4444; margin-left: 4px; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 5px; }
+        .checkbox-group label { font-weight: normal; display: inline-flex; align-items: center; gap: 4px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📖 多分类句子管理 · 支持任意多个分类</h1>
+
+    <!-- 添加/编辑句子卡片 -->
+    <div class="card">
+        <div class="card-header"><h2>✍️ 添加/编辑句子</h2><span class="badge">可选择多个分类</span></div>
+        <div class="form-row">
+            <div class="form-group" style="flex:3"><label>句子内容 *</label><textarea id="hitokoto" rows="2"></textarea></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>作者 (author) *</label><input id="author" placeholder="默认作者"></div>
+            <div class="form-group"><label>来源 (commit_from)</label><input id="commit_from" value="web"></div>
+        </div>
+        <div class="form-group"><label>分类（可多选）</label><div id="categoriesCheckboxes" class="checkbox-group"></div></div>
+        <div class="form-row">
+            <button id="addBtn" class="primary">➕ 添加句子</button>
+            <button id="cancelEditBtn" style="display:none;" class="danger">取消编辑</button>
+            <input type="hidden" id="editId" value="">
+        </div>
+    </div>
+
+    <!-- 管理分类 -->
+    <div class="card">
+        <div class="flex-between"><h2>🏷️ 管理分类</h2><button id="addCategoryBtn" class="primary" style="padding:4px 12px">+ 新增分类</button></div>
+        <div id="categoryList" class="tag-list"></div>
+        <p style="font-size:0.7rem; color:#666;">删除分类不会删除句子，只会移除该分类标记。</p>
+    </div>
+
+    <!-- 数据导入导出 -->
+    <div class="card">
+        <div class="flex-between"><h2>📂 数据导入/导出</h2></div>
+        <div class="form-row">
+            <button id="importBtn" class="outline">📂 导入 JSON 文件</button>
+            <button id="replaceImportBtn" class="danger">⚠️ 替换导入（清空现有）</button>
+            <button id="exportBtn" class="success">💾 导出 JSON</button>
+            <input type="file" id="fileInput" accept=".json" style="display:none;">
+        </div>
+        <div class="stats-bar"><span>📊 句子总数: <strong id="totalCount">0</strong></span><span>📄 当前页: <span id="pageInfo">1</span></span></div>
+    </div>
+
+    <!-- 句子列表 -->
+    <div class="card">
+        <h2>📋 句子列表</h2>
+        <div style="overflow-x:auto;"><table id="sentencesTable"><thead><tr><th>ID</th><th>句子内容</th><th>作者</th><th>分类</th><th>来源</th><th>时间</th><th>操作</th></tr></thead><tbody id="tableBody"><tr><td colspan="7">加载中...</td></tr></tbody></table></div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+</div>
+
+<script>
+    let currentPage = 1;
+    let totalPages = 1;
+    let editMode = false;
+    let allCategories = [];  // 存储所有分类名
+
+    // 加载所有分类（用于复选框和标签）
+    async function loadCategories() {
+        const res = await fetch('/api/categories');
+        const data = await res.json();
+        allCategories = data.categories || [];
+        // 渲染管理区的分类标签
+        const container = document.getElementById('categoryList');
+        container.innerHTML = allCategories.map(c => `<span class="tag">${escapeHtml(c)} <button onclick="deleteCategory('${c}')">✖</button></span>`).join('');
+        // 渲染添加/编辑句子时的复选框
+        renderCategoryCheckboxes();
+    }
+
+    function renderCategoryCheckboxes() {
+        const container = document.getElementById('categoriesCheckboxes');
+        if (!allCategories.length) {
+            container.innerHTML = '<span style="color:#999;">暂无分类，请先添加分类</span>';
+            return;
+        }
+        container.innerHTML = allCategories.map(c => `
+            <label><input type="checkbox" value="${escapeHtml(c)}" class="cat-checkbox"> ${escapeHtml(c)}</label>
+        `).join('');
+    }
+
+    function getSelectedCategories() {
+        const checkboxes = document.querySelectorAll('#categoriesCheckboxes input[type="checkbox"]:checked');
+        return Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    function setSelectedCategories(categoriesArray) {
+        const checkboxes = document.querySelectorAll('#categoriesCheckboxes input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.checked = categoriesArray.includes(cb.value);
+        });
+    }
+
+    // 加载句子列表
+    async function loadSentences(page = 1) {
+        const res = await fetch(`/api/sentences?page=${page}&limit=20`);
+        const data = await res.json();
+        document.getElementById('totalCount').innerText = data.total;
+        document.getElementById('pageInfo').innerText = `${data.page} / ${Math.ceil(data.total/20)}`;
+        currentPage = data.page;
+        const tbody = document.getElementById('tableBody');
+        if (!data.items.length) {
+            tbody.innerHTML = '<tr><td colspan="7">暂无句子，请添加</td></tr>';
+            return;
+        }
+        tbody.innerHTML = '';
+        for (const s of data.items) {
+            const row = tbody.insertRow();
+            row.insertCell(0).innerText = s.id;
+            row.insertCell(1).innerHTML = `<div style="max-width:350px;">${escapeHtml(s.hitokoto)}</div>`;
+            row.insertCell(2).innerText = s.author;
+            const categoriesDisplay = s.categories ? s.categories.join(', ') : '—';
+            row.insertCell(3).innerHTML = `<span style="background:#eef2ff; padding:2px 8px; border-radius:40px;">${escapeHtml(categoriesDisplay)}</span>`;
+            row.insertCell(4).innerText = s.commit_from || '';
+            row.insertCell(5).innerText = new Date(s.created_at * 1000).toLocaleDateString();
+            const action = row.insertCell(6);
+            const editBtn = document.createElement('button');
+            editBtn.innerText = '编辑';
+            editBtn.onclick = () => fillEditForm(s);
+            const delBtn = document.createElement('button');
+            delBtn.innerText = '删除';
+            delBtn.className = 'danger';
+            delBtn.style.marginLeft = '8px';
+            delBtn.onclick = () => deleteSentence(s.id);
+            action.appendChild(editBtn);
+            action.appendChild(delBtn);
+        }
+        renderPagination(data.total, 20, data.page);
+    }
+
+    function renderPagination(total, limit, current) {
+        const totalPage = Math.ceil(total / limit);
+        const container = document.getElementById('pagination');
+        container.innerHTML = '';
+        for (let i = 1; i <= totalPage; i++) {
+            const btn = document.createElement('button');
+            btn.innerText = i;
+            if (i === current) btn.style.background = '#3b82f6';
+            btn.onclick = () => loadSentences(i);
+            container.appendChild(btn);
+        }
+    }
+
+    async function deleteSentence(id) {
+        if (!confirm('删除后不可恢复，确定吗？')) return;
+        await fetch(`/api/sentences/${id}`, { method: 'DELETE' });
+        loadSentences(currentPage);
+        loadCategories(); // 刷新分类列表（可能因删除句子导致某些分类无句子，但仍然保留）
+    }
+
+    function fillEditForm(s) {
+        document.getElementById('hitokoto').value = s.hitokoto;
+        document.getElementById('author').value = s.author;
+        document.getElementById('commit_from').value = s.commit_from || '';
+        document.getElementById('editId').value = s.id;
+        document.getElementById('addBtn').innerText = '✏️ 保存修改';
+        document.getElementById('cancelEditBtn').style.display = 'inline-block';
+        editMode = true;
+        // 设置已选中的分类
+        setSelectedCategories(s.categories || []);
+    }
+
+    async function saveOrUpdate() {
+        const hitokoto = document.getElementById('hitokoto').value.trim();
+        let author = document.getElementById('author').value.trim();
+        const commit_from = document.getElementById('commit_from').value.trim() || 'web';
+        const categories = getSelectedCategories();
+
+        if (!hitokoto) {
+            alert('句子内容不能为空');
+            return;
+        }
+        if (author === '') author = '默认作者';
+
+        const editId = document.getElementById('editId').value;
+        const payload = { hitokoto, author, categories, commit_from };
+        let url = '/api/sentences';
+        let method = 'POST';
+        if (editId) {
+            url = `/api/sentences/${editId}`;
+            method = 'PUT';
+        }
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (res.ok) {
+            resetForm();
+            loadSentences(currentPage);
+            loadCategories(); // 刷新分类列表（可能新增了分类）
+        } else {
+            alert('操作失败，请检查网络或后端');
+        }
+    }
+
+    function resetForm() {
+        document.getElementById('hitokoto').value = '';
+        document.getElementById('author').value = '';
+        document.getElementById('commit_from').value = 'web';
+        document.getElementById('editId').value = '';
+        document.getElementById('addBtn').innerText = '➕ 添加句子';
+        document.getElementById('cancelEditBtn').style.display = 'none';
+        editMode = false;
+        // 清空复选框选择
+        setSelectedCategories([]);
+    }
+
+    // 新增分类
+    async function addNewCategory() {
+        const name = prompt('请输入分类名称（例如：励志、古风）');
+        if (!name || !name.trim()) return;
+        const res = await fetch(`/api/categories?name=${encodeURIComponent(name.trim())}`, { method: 'POST' });
+        if (res.ok) {
+            await loadCategories();
+            // 如果当前没有编辑中的句子，也可以不清空；自动刷新
+        } else {
+            alert('添加失败，可能分类已存在');
+        }
+    }
+
+    async function deleteCategory(name) {
+        if (!confirm(`确定要删除分类“${name}”吗？该操作不会删除句子，只是移除句子的这个分类标记。`)) return;
+        const res = await fetch(`/api/categories/${encodeURIComponent(name)}`, { method: 'DELETE' });
+        if (res.ok) {
+            await loadCategories();
+            // 重新加载句子列表以刷新显示
+            loadSentences(currentPage);
+        } else {
+            alert('删除失败');
+        }
+    }
+
+    // 导入导出
+    async function importFile(replace = false) {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('replace', replace);
+        const res = await fetch('/api/import', { method: 'POST', body: formData });
+        const result = await res.json();
+        alert(`导入完成，成功 ${result.imported} 条`);
+        loadSentences(1);
+        loadCategories();
+        fileInput.value = '';
+    }
+    function exportData() {
+        window.location.href = '/api/export';
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; });
+    }
+
+    // 绑定事件
+    document.getElementById('addBtn').onclick = saveOrUpdate;
+    document.getElementById('cancelEditBtn').onclick = resetForm;
+    document.getElementById('importBtn').onclick = () => document.getElementById('fileInput').click();
+    document.getElementById('replaceImportBtn').onclick = () => { if(confirm('替换导入将清空现有所有句子，确定吗？')) importFile(true); };
+    document.getElementById('exportBtn').onclick = exportData;
+    document.getElementById('fileInput').onchange = () => importFile(false);
+    document.getElementById('addCategoryBtn').onclick = addNewCategory;
+
+    // 初始化
+    loadCategories();
+    loadSentences(1);
+</script>
+</body>
+</html>
