@@ -147,6 +147,9 @@ activemq-data/
 # SageMath parsed files
 *.sage.py
 
+# Project config (may contain database credentials)
+config.toml
+
 # Environments
 .env
 .envrc
