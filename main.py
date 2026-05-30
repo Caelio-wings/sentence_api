@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import json
 import database as db
+import config
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -115,3 +116,9 @@ async def export_sentences():
     return JSONResponse(content=all_sentences, headers={
         "Content-Disposition": "attachment; filename=sentences.json"
     })
+
+
+if __name__ == "__main__":
+    import uvicorn
+    srv = config.get_server_config()
+    uvicorn.run("main:app", host=srv["host"], port=srv["port"])

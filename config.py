@@ -32,3 +32,11 @@ def get_config() -> dict:
 
 def get_db_config() -> dict:
     return get_config()["database"]
+
+
+def get_server_config() -> dict:
+    cfg = get_config().get("server", {})
+    return {
+        "host": cfg.get("host", "0.0.0.0"),
+        "port": cfg.get("port", 8000),
+    }

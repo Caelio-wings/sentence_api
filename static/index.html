@@ -1,298 +1,814 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多分类句子管理</title>
-    <style>
-        * { box-sizing: border-box; }
-        body { font-family: system-ui, sans-serif; background: #f1f5f9; margin: 0; padding: 24px 20px; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .card { background: white; border-radius: 24px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .card-header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #eef2ff; padding-bottom: 0.5rem; margin-bottom: 1rem; }
-        .card-header h2 { margin: 0; font-size: 1.3rem; }
-        .form-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; align-items: flex-end; }
-        .form-group { flex: 1; min-width: 180px; }
-        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; }
-        input, select, textarea { width: 100%; padding: 8px 12px; border-radius: 16px; border: 1px solid #cbd5e1; font-size: 0.9rem; }
-        button { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 18px; border-radius: 40px; cursor: pointer; font-weight: 500; }
-        button.primary { background: #3b82f6; color: white; border: none; }
-        button.success { background: #10b981; color: white; border: none; }
-        button.danger { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
-        .stats-bar { background: #f8fafc; padding: 10px 16px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 1rem; display: flex; gap: 20px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th, td { text-align: left; padding: 10px 6px; border-bottom: 1px solid #e2e8f0; }
-        .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 1rem; }
-        .badge { background: #eef2ff; padding: 2px 8px; border-radius: 40px; font-size: 0.7rem; }
-        .flex-between { display: flex; justify-content: space-between; align-items: center; }
-        .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .tag { background: #e2e8f0; padding: 4px 12px; border-radius: 40px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; }
-        .tag button { background: none; border: none; cursor: pointer; color: #ef4444; margin-left: 4px; }
-        .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 5px; }
-        .checkbox-group label { font-weight: normal; display: inline-flex; align-items: center; gap: 4px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>句子手帐 · 多分类管理</title>
+<style>
+/* ===== Reset & Base ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  background:#faf9f6;color:#1a1a2e;line-height:1.6;min-height:100vh}
+img,svg{display:block;max-width:100%}
+a{color:#6c5ce7;text-decoration:none}
+
+/* ===== Typography ===== */
+h1{font-size:1.5rem;font-weight:700;line-height:1.2}
+h2{font-size:1.2rem;font-weight:600;line-height:1.2}
+h3{font-size:1rem;font-weight:600;color:#6b7280}
+p{color:#6b7280;font-size:.9rem}
+
+/* ===== Layout ===== */
+.app-header{position:sticky;top:0;z-index:50;background:rgba(250,249,246,.85);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid #e5e7eb;padding:0 16px}
+.header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;
+  justify-content:space-between;height:56px}
+.header-inner h1{display:flex;align-items:center;gap:8px;font-size:1.15rem;
+  background:linear-gradient(135deg,#6c5ce7,#a78bfa);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text}
+.header-inner h1 span{font-size:1.3rem}
+.header-actions{display:flex;gap:8px;align-items:center}
+.mobile-menu-btn{display:none;background:none;border:none;font-size:1.5rem;
+  cursor:pointer;padding:4px 8px;color:#1a1a2e;border-radius:8px}
+.mobile-menu-btn:hover{background:#e8e5f7}
+
+.container{max-width:1200px;margin:0 auto;padding:16px}
+
+/* ===== Stats Bar ===== */
+.stats-bar{display:flex;gap:24px;flex-wrap:wrap;background:#fff;border:1px solid #e5e7eb;
+  border-radius:16px;padding:12px 20px;margin-bottom:20px;font-size:.85rem;color:#6b7280}
+.stats-bar strong{color:#1a1a2e}
+.stats-bar .stat{display:flex;align-items:center;gap:6px}
+.stats-bar .stat-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+/* ===== Cards ===== */
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;
+  padding:20px 16px;margin-bottom:16px;
+  box-shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  animation:fadeUp .35s ease both}
+.card:nth-child(2){animation-delay:.05s}
+.card:nth-child(3){animation-delay:.1s}
+.card:nth-child(4){animation-delay:.15s}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.card-header{display:flex;justify-content:space-between;align-items:center;
+  padding-bottom:12px;margin-bottom:16px;border-bottom:2px solid #e8e5f7}
+.card-header h2{font-size:1.05rem;display:flex;align-items:center;gap:6px}
+
+/* ===== Form Elements ===== */
+.form-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.form-group{flex:1;min-width:180px}
+.form-group label{display:block;font-size:.78rem;font-weight:600;color:#6b7280;
+  margin-bottom:4px;letter-spacing:.02em}
+input,select,textarea{
+  width:100%;padding:10px 14px;border-radius:12px;border:1.5px solid #e5e7eb;
+  background:#f3f4f6;font-size:.9rem;font-family:inherit;color:#1a1a2e;
+  transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#6c5ce7;
+  background:#fff;box-shadow:0 0 0 3px rgba(108,92,231,.15)}
+textarea{resize:vertical;min-height:72px;line-height:1.5}
+::placeholder{color:#9ca3af}
+input[type="file"]{display:none}
+
+/* ===== Buttons ===== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:8px 18px;border-radius:9999px;font-size:.85rem;font-weight:500;
+  font-family:inherit;border:1.5px solid transparent;cursor:pointer;
+  transition:transform .18s ease,box-shadow .18s ease,background .2s;
+  white-space:nowrap;min-height:38px;line-height:1}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:#6c5ce7;color:#fff;border-color:#6c5ce7}
+.btn-primary:hover{background:#5a4bd1;box-shadow:0 4px 12px rgba(108,92,231,.35)}
+.btn-secondary{background:transparent;color:#6c5ce7;border-color:#6c5ce7}
+.btn-secondary:hover{background:#e8e5f7}
+.btn-danger{background:transparent;color:#dc2626;border-color:#fecaca}
+.btn-danger:hover{background:#fef2f2}
+.btn-success{background:#059669;color:#fff;border-color:#059669}
+.btn-success:hover{background:#047857;box-shadow:0 4px 12px rgba(5,150,105,.3)}
+.btn-ghost{background:transparent;color:#6b7280;border-color:transparent}
+.btn-ghost:hover{background:#f3f4f6}
+.btn-sm{padding:4px 12px;font-size:.78rem;min-height:30px}
+.btn-icon{padding:6px;min-width:34px;min-height:34px;border-radius:50%}
+.btn-icon.btn-sm{padding:4px;min-width:28px;min-height:28px}
+
+/* ===== Tags ===== */
+.tag-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.tag{display:inline-flex;align-items:center;gap:5px;background:#e8e5f7;
+  color:#4c3fbf;padding:4px 12px;border-radius:9999px;font-size:.8rem;font-weight:500}
+.tag .tag-del{background:none;border:none;cursor:pointer;font-size:.75rem;
+  color:#8b7ad7;padding:0 2px;line-height:1;border-radius:4px;
+  transition:color .15s,background .15s}
+.tag .tag-del:hover{color:#dc2626;background:rgba(220,38,38,.1)}
+.badge{display:inline-flex;align-items:center;background:#e8e5f7;color:#4c3fbf;
+  padding:2px 10px;border-radius:9999px;font-size:.72rem;font-weight:500;
+  white-space:nowrap}
+
+/* ===== Checkbox Group ===== */
+.checkbox-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.checkbox-group label{display:inline-flex;align-items:center;gap:5px;
+  font-size:.85rem;font-weight:400;color:#1a1a2e;cursor:pointer;
+  padding:4px 10px;border-radius:8px;transition:background .15s}
+.checkbox-group label:hover{background:#f3f4f6}
+.checkbox-group input[type="checkbox"]{width:16px;height:16px;accent-color:#6c5ce7;
+  cursor:pointer;border-radius:4px}
+
+/* ===== Table ===== */
+.table-wrap{overflow-x:auto;border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+thead{background:#faf9f6}
+th{text-align:left;padding:12px 10px;font-weight:600;font-size:.78rem;
+  color:#6b7280;letter-spacing:.03em;border-bottom:2px solid #e5e7eb}
+td{padding:12px 10px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+tbody tr{transition:background .15s}
+tbody tr:nth-child(even){background:#faf9f6}
+tbody tr:hover{background:#e8e5f7}
+.cell-content{max-width:320px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cell-actions{display:flex;gap:4px;flex-wrap:nowrap}
+.sentence-text{font-style:italic;color:#1a1a2e}
+
+/* ===== Pagination ===== */
+.pagination{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:16px}
+.pagination .page-btn{min-width:34px;height:34px;border-radius:8px;border:1px solid #e5e7eb;
+  background:#fff;color:#6b7280;font-size:.8rem;font-weight:500;cursor:pointer;
+  transition:all .15s;display:inline-flex;align-items:center;justify-content:center}
+.pagination .page-btn:hover{background:#e8e5f7;border-color:#6c5ce7;color:#6c5ce7}
+.pagination .page-btn.active{background:#6c5ce7;border-color:#6c5ce7;color:#fff}
+
+/* ===== Modal ===== */
+.modal-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.4);
+  backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;
+  opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;
+  padding:16px}
+.modal-overlay.open{opacity:1;visibility:visible}
+.modal{background:#fff;border-radius:16px;padding:24px;max-width:440px;width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,.15);transform:scale(.92) translateY(8px);
+  transition:transform .25s ease}
+.modal-overlay.open .modal{transform:scale(1) translateY(0)}
+.modal h3{font-size:1.1rem;margin-bottom:8px}
+.modal p{font-size:.9rem;margin-bottom:20px;color:#6b7280}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end}
+.modal-actions .btn{min-width:80px}
+
+/* ===== Toast ===== */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:200;
+  display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:#1a1a2e;color:#fff;padding:12px 20px;border-radius:12px;
+  font-size:.85rem;box-shadow:0 8px 24px rgba(0,0,0,.15);
+  animation:toastIn .3s ease both;pointer-events:auto;
+  max-width:360px;backdrop-filter:blur(8px)}
+.toast.success{background:#059669}
+.toast.error{background:#dc2626}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+/* ===== Loading ===== */
+.loading-dots{display:flex;align-items:center;justify-content:center;gap:4px;padding:40px}
+.loading-dots span{width:8px;height:8px;border-radius:50%;background:#6c5ce7;
+  animation:dotPulse 1s ease-in-out infinite}
+.loading-dots span:nth-child(2){animation-delay:.15s}
+.loading-dots span:nth-child(3){animation-delay:.3s}
+@keyframes dotPulse{0%,80%,100%{opacity:.3;transform:scale(.7)}40%{opacity:1;transform:scale(1)}}
+
+/* ===== Empty State ===== */
+.empty-state{text-align:center;padding:40px 20px;color:#9ca3af}
+.empty-state .empty-icon{font-size:2.5rem;margin-bottom:12px}
+.empty-state p{font-size:.9rem}
+
+/* ===== Mobile Card List (table alternative) ===== */
+.mobile-cards{display:none}
+.mobile-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;
+  padding:14px;margin-bottom:10px}
+.mobile-card .mc-header{display:flex;justify-content:space-between;align-items:start;
+  margin-bottom:6px;gap:8px}
+.mobile-card .mc-id{font-size:.72rem;color:#9ca3af;background:#f3f4f6;
+  padding:1px 8px;border-radius:6px}
+.mobile-card .mc-text{font-size:.9rem;font-style:italic;margin-bottom:6px;line-height:1.5}
+.mobile-card .mc-meta{display:flex;flex-wrap:wrap;gap:6px;font-size:.78rem;color:#6b7280;
+  align-items:center}
+.mobile-card .mc-actions{display:flex;gap:6px;margin-top:8px;justify-content:flex-end}
+
+/* ===== Random Quote Banner ===== */
+.quote-banner{background:linear-gradient(135deg,#e8e5f7,#c4b5fd);
+  border-radius:16px;padding:28px 24px;margin-bottom:20px;text-align:center;
+  border:1px solid #d1c4e9;position:relative;overflow:hidden}
+.quote-banner::before{content:'"';position:absolute;top:-10px;left:12px;
+  font-size:6rem;color:rgba(108,92,231,.1);font-family:Georgia,serif;line-height:1}
+.quote-banner::after{content:'"';position:absolute;bottom:-40px;right:12px;
+  font-size:6rem;color:rgba(108,92,231,.1);font-family:Georgia,serif;line-height:1}
+.quote-banner .quote-text{font-size:1.15rem;font-style:italic;color:#2d1b69;
+  margin-bottom:8px;line-height:1.6;position:relative;z-index:1}
+.quote-banner .quote-author{font-size:.85rem;color:#5b4a9e;position:relative;z-index:1}
+.quote-banner .quote-cats{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;
+  margin-top:10px}
+.quote-banner .quote-cats .badge{background:rgba(108,92,231,.2);color:#2d1b69}
+.quote-banner .quote-refresh{position:absolute;top:12px;right:14px;z-index:2;
+  background:rgba(255,255,255,.5);border:none;width:32px;height:32px;border-radius:50%;
+  cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;
+  transition:background .2s,transform .2s;backdrop-filter:blur(4px)}
+.quote-banner .quote-refresh:hover{background:rgba(255,255,255,.8);transform:rotate(180deg)}
+
+/* ===== Responsive ===== */
+@media(min-width:640px){
+  .card{padding:24px}
+  h1{font-size:1.6rem}
+  .header-inner{height:60px}
+}
+
+@media(max-width:639px){
+  .header-inner h1{font-size:1rem}
+  .mobile-menu-btn{display:block}
+  .header-actions .btn span.btn-label{display:none}
+  /* Table → card list */
+  .table-wrap table{display:none}
+  .mobile-cards{display:block}
+  .stats-bar{gap:12px;padding:10px 14px;font-size:.8rem}
+  .form-group{min-width:100%}
+  .form-row{gap:10px}
+  .quote-banner{padding:20px 16px}
+  .quote-banner .quote-text{font-size:1rem}
+}
+
+@media(min-width:640px){
+  .mobile-cards{display:none!important}
+  .table-wrap table{display:table}
+}
+
+/* ===== Category inline add ===== */
+.category-add-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.category-add-row input{flex:1;min-width:0}
+.category-add-row .btn{flex-shrink:0}
+
+/* ===== Tab navigation on mobile ===== */
+.tab-nav{display:flex;gap:4px;padding:4px;background:#f3f4f6;border-radius:12px;
+  margin-bottom:16px;overflow-x:auto}
+.tab-nav .tab-btn{padding:8px 16px;border-radius:8px;border:none;background:transparent;
+  font-size:.85rem;font-weight:500;cursor:pointer;color:#6b7280;white-space:nowrap;
+  transition:all .2s;font-family:inherit}
+.tab-nav .tab-btn.active{background:#fff;color:#6c5ce7;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+#mobileTabContent > .tab-section{display:none}
+#mobileTabContent > .tab-section.active{display:block}
+</style>
 </head>
 <body>
+
+<!-- ===== Header ===== -->
+<header class="app-header">
+  <div class="header-inner">
+    <h1><span>📖</span> 句子手帐</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary btn-sm" onclick="loadRandom()" title="随机一言">
+        <span>🎲</span><span class="btn-label">随机</span>
+      </button>
+      <button class="btn btn-primary btn-sm" id="addSentenceNavBtn" title="添加句子">
+        <span>✍️</span><span class="btn-label">写句子</span>
+      </button>
+    </div>
+  </div>
+</header>
+
 <div class="container">
-    <h1>📖 多分类句子管理 · 支持任意多个分类</h1>
 
-    <!-- 添加/编辑句子卡片 -->
-    <div class="card">
-        <div class="card-header"><h2>✍️ 添加/编辑句子</h2><span class="badge">可选择多个分类</span></div>
-        <div class="form-row">
-            <div class="form-group" style="flex:3"><label>句子内容 *</label><textarea id="hitokoto" rows="2"></textarea></div>
-        </div>
-        <div class="form-row">
-            <div class="form-group"><label>作者 (author) *</label><input id="author" placeholder="默认作者"></div>
-            <div class="form-group"><label>来源 (commit_from)</label><input id="commit_from" value="web"></div>
-        </div>
-        <div class="form-group"><label>分类（可多选）</label><div id="categoriesCheckboxes" class="checkbox-group"></div></div>
-        <div class="form-row">
-            <button id="addBtn" class="primary">➕ 添加句子</button>
-            <button id="cancelEditBtn" style="display:none;" class="danger">取消编辑</button>
-            <input type="hidden" id="editId" value="">
-        </div>
-    </div>
+  <!-- ===== Random Quote Banner ===== -->
+  <div class="quote-banner" id="quoteBanner">
+    <button class="quote-refresh" onclick="loadRandom()" title="换一句">↻</button>
+    <div class="quote-text" id="quoteText">加载中...</div>
+    <div class="quote-author" id="quoteAuthor"></div>
+    <div class="quote-cats" id="quoteCats"></div>
+  </div>
 
-    <!-- 管理分类 -->
-    <div class="card">
-        <div class="flex-between"><h2>🏷️ 管理分类</h2><button id="addCategoryBtn" class="primary" style="padding:4px 12px">+ 新增分类</button></div>
-        <div id="categoryList" class="tag-list"></div>
-        <p style="font-size:0.7rem; color:#666;">删除分类不会删除句子，只会移除该分类标记。</p>
-    </div>
+  <!-- ===== Stats ===== -->
+  <div class="stats-bar">
+    <span class="stat"><span class="stat-dot" style="background:#6c5ce7"></span> 总计 <strong id="totalCount">0</strong> 句</span>
+    <span class="stat"><span class="stat-dot" style="background:#a78bfa"></span> 分类 <strong id="categoryCount">0</strong></span>
+    <span class="stat"><span class="stat-dot" style="background:#f59e0b"></span> 第 <strong id="pageInfo">1</strong> 页</span>
+  </div>
 
-    <!-- 数据导入导出 -->
-    <div class="card">
-        <div class="flex-between"><h2>📂 数据导入/导出</h2></div>
-        <div class="form-row">
-            <button id="importBtn" class="outline">📂 导入 JSON 文件</button>
-            <button id="replaceImportBtn" class="danger">⚠️ 替换导入（清空现有）</button>
-            <button id="exportBtn" class="success">💾 导出 JSON</button>
-            <input type="file" id="fileInput" accept=".json" style="display:none;">
+  <!-- ===== Tab Nav (mobile) ===== -->
+  <div class="tab-nav" id="tabNav">
+    <button class="tab-btn active" data-tab="list">📋 列表</button>
+    <button class="tab-btn" data-tab="add">✍️ 写句子</button>
+    <button class="tab-btn" data-tab="categories">🏷️ 分类</button>
+    <button class="tab-btn" data-tab="tools">📂 数据</button>
+  </div>
+
+  <div id="mobileTabContent">
+
+    <!-- ===== TAB: 句子列表 ===== -->
+    <div class="tab-section active" data-section="list">
+      <div class="card">
+        <div class="card-header">
+          <h2>📋 全部句子</h2>
+          <span class="badge" id="listBadge">第 1 页</span>
         </div>
-        <div class="stats-bar"><span>📊 句子总数: <strong id="totalCount">0</strong></span><span>📄 当前页: <span id="pageInfo">1</span></span></div>
-    </div>
-
-    <!-- 句子列表 -->
-    <div class="card">
-        <h2>📋 句子列表</h2>
-        <div style="overflow-x:auto;"><table id="sentencesTable"><thead><tr><th>ID</th><th>句子内容</th><th>作者</th><th>分类</th><th>来源</th><th>时间</th><th>操作</th></tr></thead><tbody id="tableBody"><tr><td colspan="7">加载中...</td></tr></tbody></table></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:50px">ID</th>
+                <th>句子</th>
+                <th style="width:100px">作者</th>
+                <th style="width:140px">分类</th>
+                <th style="width:80px">来源</th>
+                <th style="width:80px">时间</th>
+                <th style="width:88px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr><td colspan="7"><div class="loading-dots"><span></span><span></span><span></span></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Mobile card list -->
+        <div class="mobile-cards" id="mobileCards"></div>
+        <!-- Pagination -->
         <div class="pagination" id="pagination"></div>
+      </div>
     </div>
+
+    <!-- ===== TAB: 写句子 ===== -->
+    <div class="tab-section" data-section="add">
+      <div class="card" id="formCard">
+        <div class="card-header">
+          <h2 id="formTitle">✍️ 写句子</h2>
+          <button class="btn btn-ghost btn-sm" id="cancelEditBtn" style="display:none" onclick="resetForm()">取消编辑</button>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="flex:3">
+            <label>句子内容 <span style="color:#dc2626">*</span></label>
+            <textarea id="hitokoto" rows="2" placeholder="写一句触动你的话…"></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>作者 <span style="color:#dc2626">*</span></label>
+            <input id="author" placeholder="默认作者">
+          </div>
+          <div class="form-group">
+            <label>来源</label>
+            <input id="commit_from" value="web" placeholder="来源">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>分类（可多选）</label>
+          <div id="categoriesCheckboxes" class="checkbox-group">
+            <span style="color:#9ca3af;font-size:.85rem">暂无分类，请先添加</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="addBtn">✏️ 写下它</button>
+          <button class="btn btn-ghost" id="addAnotherBtn" style="display:none" onclick="resetFormAfterAdd()">再写一句</button>
+          <input type="hidden" id="editId" value="">
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: 分类管理 ===== -->
+    <div class="tab-section" data-section="categories">
+      <div class="card">
+        <div class="card-header">
+          <h2>🏷️ 管理分类</h2>
+        </div>
+        <div class="category-add-row">
+          <input id="newCategoryInput" placeholder="输入新分类名称…" onkeydown="if(event.key==='Enter')addNewCategory()">
+          <button class="btn btn-primary" onclick="addNewCategory()">添加</button>
+        </div>
+        <div id="categoryList" class="tag-list"></div>
+        <p style="font-size:.78rem;color:#9ca3af;margin-top:12px">删除分类不会删除句子，只会移除该分类标记。</p>
+      </div>
+    </div>
+
+    <!-- ===== TAB: 数据工具 ===== -->
+    <div class="tab-section" data-section="tools">
+      <div class="card">
+        <div class="card-header">
+          <h2>📂 导入 / 导出</h2>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">📥 导入 JSON</button>
+          <button class="btn btn-danger" onclick="confirmReplaceImport()">⚠️ 替换导入</button>
+          <button class="btn btn-success" onclick="exportData()">📤 导出 JSON</button>
+          <input type="file" id="fileInput" accept=".json" style="display:none">
+        </div>
+        <p style="font-size:.78rem;color:#9ca3af;margin-top:10px">JSON 文件应为对象数组，每条含 <code>hitokoto</code>、<code>author</code>、<code>categories</code> 字段。</p>
+      </div>
+    </div>
+
+  </div><!-- /mobileTabContent -->
+</div><!-- /container -->
+
+<!-- ===== Modal ===== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">确认</h3>
+    <p id="modalBody">确定要执行此操作吗？</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-danger" id="modalConfirmBtn" onclick="closeModal()">确定</button>
+    </div>
+  </div>
 </div>
 
+<!-- ===== Toast Container ===== -->
+<div class="toast-container" id="toastContainer"></div>
+
 <script>
-    let currentPage = 1;
-    let totalPages = 1;
-    let editMode = false;
-    let allCategories = [];  // 存储所有分类名
+/* ===== State ===== */
+let currentPage = 1;
+let totalPages = 1;
+let allCategories = [];
+let editMode = false;
+let modalResolve = null;
 
-    // 加载所有分类（用于复选框和标签）
-    async function loadCategories() {
-        const res = await fetch('/api/categories');
-        const data = await res.json();
-        allCategories = data.categories || [];
-        // 渲染管理区的分类标签
-        const container = document.getElementById('categoryList');
-        container.innerHTML = allCategories.map(c => `<span class="tag">${escapeHtml(c)} <button onclick="deleteCategory('${c}')">✖</button></span>`).join('');
-        // 渲染添加/编辑句子时的复选框
-        renderCategoryCheckboxes();
+/* ===== Init ===== */
+document.addEventListener('DOMContentLoaded',()=>{
+  initTabs();
+  loadCategories();
+  loadSentences(1);
+  loadRandom();
+  document.getElementById('fileInput').onchange = (e) => {
+    if(e.target.files[0]) importFile(false);
+  };
+});
+
+/* ===== Tabs ===== */
+function initTabs(){
+  const tabs = document.querySelectorAll('.tab-btn');
+  const sections = document.querySelectorAll('.tab-section');
+  tabs.forEach(tab => {
+    tab.addEventListener('click',()=>{
+      tabs.forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.tab;
+      sections.forEach(s=>s.classList.toggle('active', s.dataset.section === target));
+      // Scroll to top of tab content
+      document.getElementById('mobileTabContent').scrollIntoView({behavior:'smooth',block:'start'});
+    });
+  });
+}
+
+/* ===== Toast ===== */
+function showToast(msg, type='info'){
+  const c = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(()=>{el.style.transition='opacity .3s,transform .3s';el.style.opacity='0';el.style.transform='translateY(-8px)';setTimeout(()=>el.remove(),300)},2500);
+}
+
+/* ===== Modal ===== */
+function openModal(title, body, confirmText='确定', danger=false){
+  return new Promise(resolve => {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').textContent = body;
+    const btn = document.getElementById('modalConfirmBtn');
+    btn.textContent = confirmText;
+    btn.className = danger ? 'btn btn-danger' : 'btn btn-primary';
+    document.getElementById('modalOverlay').classList.add('open');
+    modalResolve = resolve;
+    btn.onclick = ()=>{ closeModal(); resolve(true); };
+  });
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('open');
+  if(modalResolve){modalResolve(false);modalResolve=null}
+}
+document.getElementById('modalOverlay').onclick = (e) => {
+  if(e.target === e.currentTarget) closeModal();
+};
+
+/* ===== Random Quote ===== */
+async function loadRandom(){
+  const textEl = document.getElementById('quoteText');
+  const authorEl = document.getElementById('quoteAuthor');
+  const catsEl = document.getElementById('quoteCats');
+  textEl.textContent = '加载中…';
+  try{
+    const res = await fetch('/api/random');
+    if(!res.ok) throw new Error('no content');
+    const d = await res.json();
+    textEl.textContent = d.hitokoto;
+    authorEl.textContent = `—— ${d.author}`;
+    catsEl.innerHTML = (d.categories||[]).map(c => `<span class="badge">${escHtml(c)}</span>`).join('');
+  }catch(e){
+    textEl.textContent = '✨ 还没有句子，点击上方"写句子"开始吧';
+    authorEl.textContent = '';
+    catsEl.innerHTML = '';
+  }
+}
+
+/* ===== Categories ===== */
+async function loadCategories(){
+  try{
+    const res = await fetch('/api/categories');
+    const d = await res.json();
+    allCategories = d.categories || [];
+    document.getElementById('categoryCount').textContent = allCategories.length;
+    // Category tags in management
+    const container = document.getElementById('categoryList');
+    if(!allCategories.length){
+      container.innerHTML = '<span style="color:#9ca3af;font-size:.85rem">暂无分类，在上方添加</span>';
+    }else{
+      container.innerHTML = allCategories.map(c =>
+        `<span class="tag">${escHtml(c)} <button class="tag-del" onclick="deleteCategory('${escHtml(c)}')">✕</button></span>`
+      ).join('');
     }
+    // Checkboxes in form
+    renderCategoryCheckboxes();
+  }catch(e){showToast('加载分类失败','error')}
+}
 
-    function renderCategoryCheckboxes() {
-        const container = document.getElementById('categoriesCheckboxes');
-        if (!allCategories.length) {
-            container.innerHTML = '<span style="color:#999;">暂无分类，请先添加分类</span>';
-            return;
-        }
-        container.innerHTML = allCategories.map(c => `
-            <label><input type="checkbox" value="${escapeHtml(c)}" class="cat-checkbox"> ${escapeHtml(c)}</label>
-        `).join('');
+function renderCategoryCheckboxes(){
+  const container = document.getElementById('categoriesCheckboxes');
+  if(!allCategories.length){
+    container.innerHTML = '<span style="color:#9ca3af;font-size:.85rem">暂无分类，请先切换到"分类"标签添加</span>';
+    return;
+  }
+  container.innerHTML = allCategories.map(c => `
+    <label><input type="checkbox" value="${escHtml(c)}" class="cat-checkbox"> ${escHtml(c)}</label>
+  `).join('');
+}
+
+function getSelectedCategories(){
+  return Array.from(document.querySelectorAll('#categoriesCheckboxes input[type="checkbox"]:checked')).map(cb => cb.value);
+}
+function setSelectedCategories(arr){
+  document.querySelectorAll('#categoriesCheckboxes input[type="checkbox"]').forEach(cb => {
+    cb.checked = arr.includes(cb.value);
+  });
+}
+
+async function addNewCategory(){
+  const input = document.getElementById('newCategoryInput');
+  const name = input.value.trim();
+  if(!name){showToast('请输入分类名称','error');return}
+  try{
+    const res = await fetch(`/api/categories?name=${encodeURIComponent(name)}`,{method:'POST'});
+    if(res.ok){
+      showToast(`分类「${name}」已添加`,'success');
+      input.value = '';
+      await loadCategories();
+      await loadSentences(currentPage);
+    }else{
+      const text = await res.text();
+      showToast(text.includes('UNIQUE')?'分类已存在':'添加失败','error');
     }
+  }catch(e){showToast('网络错误','error')}
+}
 
-    function getSelectedCategories() {
-        const checkboxes = document.querySelectorAll('#categoriesCheckboxes input[type="checkbox"]:checked');
-        return Array.from(checkboxes).map(cb => cb.value);
+async function deleteCategory(name){
+  const ok = await openModal(`删除分类「${name}」`,'该操作不会删除句子，只移除句子的这个分类标记。','删除',true);
+  if(!ok) return;
+  try{
+    const res = await fetch(`/api/categories/${encodeURIComponent(name)}`,{method:'DELETE'});
+    if(res.ok){
+      showToast('分类已删除','success');
+      await loadCategories();
+      await loadSentences(currentPage);
+    }else{
+      showToast('删除失败','error');
     }
+  }catch(e){showToast('网络错误','error')}
+}
 
-    function setSelectedCategories(categoriesArray) {
-        const checkboxes = document.querySelectorAll('#categoriesCheckboxes input[type="checkbox"]');
-        checkboxes.forEach(cb => {
-            cb.checked = categoriesArray.includes(cb.value);
-        });
+/* ===== Sentences CRUD ===== */
+async function loadSentences(page=1){
+  try{
+    const res = await fetch(`/api/sentences?page=${page}&limit=20`);
+    const d = await res.json();
+    document.getElementById('totalCount').textContent = d.total;
+    const totalP = Math.ceil(d.total/20) || 1;
+    document.getElementById('pageInfo').textContent = `${d.page} / ${totalP}`;
+    document.getElementById('listBadge').textContent = `第 ${d.page} 页 / 共 ${totalP} 页`;
+    currentPage = d.page; totalPages = totalP;
+    renderTable(d.items);
+    renderMobileCards(d.items);
+    renderPagination(d.total, 20, d.page);
+  }catch(e){
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:40px">加载失败</td></tr>';
+  }
+}
+
+function renderTable(items){
+  const tbody = document.getElementById('tableBody');
+  if(!items.length){
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📝</div><p>还没有句子，写一句吧</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = items.map(s => {
+    const cats = (s.categories||[]).map(c => `<span class="badge">${escHtml(c)}</span>`).join(' ');
+    const date = new Date(s.created_at*1000).toLocaleDateString();
+    return `<tr>
+      <td style="color:#9ca3af;font-size:.78rem">${s.id}</td>
+      <td><div class="cell-content sentence-text">${escHtml(s.hitokoto)}</div></td>
+      <td>${escHtml(s.author)}</td>
+      <td>${cats || '<span style="color:#9ca3af">—</span>'}</td>
+      <td style="color:#6b7280">${escHtml(s.commit_from||'')}</td>
+      <td style="color:#6b7280;font-size:.78rem">${date}</td>
+      <td><div class="cell-actions">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="fillEditForm(${JSON.stringify(s).replace(/"/g,'&quot;')})" title="编辑">✏️</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="confirmDeleteSentence(${s.id})" title="删除">🗑️</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderMobileCards(items){
+  const container = document.getElementById('mobileCards');
+  if(!items.length){
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">📝</div><p>还没有句子，写一句吧</p></div>';
+    return;
+  }
+  container.innerHTML = items.map(s => {
+    const cats = (s.categories||[]).map(c => `<span class="badge">${escHtml(c)}</span>`).join(' ');
+    const date = new Date(s.created_at*1000).toLocaleDateString();
+    return `<div class="mobile-card">
+      <div class="mc-header">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span class="mc-id">#${s.id}</span>
+          <span style="font-size:.78rem;color:#6b7280">${escHtml(s.author)}</span>
+        </div>
+        <div class="mc-actions">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="fillEditForm(${JSON.stringify(s).replace(/"/g,'&quot;')})" title="编辑">✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="confirmDeleteSentence(${s.id})" title="删除">🗑️</button>
+        </div>
+      </div>
+      <div class="mc-text">${escHtml(s.hitokoto)}</div>
+      <div class="mc-meta">
+        ${cats}
+        <span>· ${date}</span>
+        ${s.commit_from ? `<span>· ${escHtml(s.commit_from)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderPagination(total, limit, current){
+  const totalP = Math.ceil(total/limit) || 1;
+  const container = document.getElementById('pagination');
+  let html = '';
+  const range = 2;
+  const start = Math.max(1, current - range);
+  const end = Math.min(totalP, current + range);
+  if(current > 1) html += `<button class="page-btn" onclick="loadSentences(${current-1})">‹</button>`;
+  if(start > 1) html += `<button class="page-btn" onclick="loadSentences(1)">1</button>${start>2?'<span style="padding:0 4px;color:#9ca3af">…</span>':''}`;
+  for(let i=start;i<=end;i++) html += `<button class="page-btn${i===current?' active':''}" onclick="loadSentences(${i})">${i}</button>`;
+  if(end < totalP) html += `${end<totalP-1?'<span style="padding:0 4px;color:#9ca3af">…</span>':''}<button class="page-btn" onclick="loadSentences(${totalP})">${totalP}</button>`;
+  if(current < totalP) html += `<button class="page-btn" onclick="loadSentences(${current+1})">›</button>`;
+  container.innerHTML = html;
+}
+
+async function saveOrUpdate(){
+  const hitokoto = document.getElementById('hitokoto').value.trim();
+  let author = document.getElementById('author').value.trim();
+  const commit_from = document.getElementById('commit_from').value.trim() || 'web';
+  const categories = getSelectedCategories();
+  if(!hitokoto){ showToast('句子内容不能为空','error'); return; }
+  if(!author) author = '默认作者';
+  const editId = document.getElementById('editId').value;
+  const payload = {hitokoto,author,categories,commit_from};
+  try{
+    let url = '/api/sentences';
+    let method = 'POST';
+    let successMsg = '句子已添加 ✨';
+    if(editId){
+      url = `/api/sentences/${editId}`;
+      method = 'PUT';
+      successMsg = '已更新 ✏️';
     }
-
-    // 加载句子列表
-    async function loadSentences(page = 1) {
-        const res = await fetch(`/api/sentences?page=${page}&limit=20`);
-        const data = await res.json();
-        document.getElementById('totalCount').innerText = data.total;
-        document.getElementById('pageInfo').innerText = `${data.page} / ${Math.ceil(data.total/20)}`;
-        currentPage = data.page;
-        const tbody = document.getElementById('tableBody');
-        if (!data.items.length) {
-            tbody.innerHTML = '<tr><td colspan="7">暂无句子，请添加</td></tr>';
-            return;
-        }
-        tbody.innerHTML = '';
-        for (const s of data.items) {
-            const row = tbody.insertRow();
-            row.insertCell(0).innerText = s.id;
-            row.insertCell(1).innerHTML = `<div style="max-width:350px;">${escapeHtml(s.hitokoto)}</div>`;
-            row.insertCell(2).innerText = s.author;
-            const categoriesDisplay = s.categories ? s.categories.join(', ') : '—';
-            row.insertCell(3).innerHTML = `<span style="background:#eef2ff; padding:2px 8px; border-radius:40px;">${escapeHtml(categoriesDisplay)}</span>`;
-            row.insertCell(4).innerText = s.commit_from || '';
-            row.insertCell(5).innerText = new Date(s.created_at * 1000).toLocaleDateString();
-            const action = row.insertCell(6);
-            const editBtn = document.createElement('button');
-            editBtn.innerText = '编辑';
-            editBtn.onclick = () => fillEditForm(s);
-            const delBtn = document.createElement('button');
-            delBtn.innerText = '删除';
-            delBtn.className = 'danger';
-            delBtn.style.marginLeft = '8px';
-            delBtn.onclick = () => deleteSentence(s.id);
-            action.appendChild(editBtn);
-            action.appendChild(delBtn);
-        }
-        renderPagination(data.total, 20, data.page);
+    const res = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    if(res.ok){
+      showToast(successMsg,'success');
+      resetForm();
+      await loadSentences(currentPage);
+      await loadCategories();
+      loadRandom();
+      // Show "add another" button briefly
+      if(!editId){
+        document.getElementById('addAnotherBtn').style.display = 'inline-flex';
+        setTimeout(()=>document.getElementById('addAnotherBtn').style.display='none', 4000);
+      }
+      // Switch to list tab on mobile
+      switchTab('list');
+    }else{
+      const err = await res.text();
+      showToast(`操作失败: ${err}`,'error');
     }
+  }catch(e){showToast('网络错误','error')}
+}
 
-    function renderPagination(total, limit, current) {
-        const totalPage = Math.ceil(total / limit);
-        const container = document.getElementById('pagination');
-        container.innerHTML = '';
-        for (let i = 1; i <= totalPage; i++) {
-            const btn = document.createElement('button');
-            btn.innerText = i;
-            if (i === current) btn.style.background = '#3b82f6';
-            btn.onclick = () => loadSentences(i);
-            container.appendChild(btn);
-        }
+function resetForm(){
+  document.getElementById('hitokoto').value = '';
+  document.getElementById('author').value = '';
+  document.getElementById('commit_from').value = 'web';
+  document.getElementById('editId').value = '';
+  document.getElementById('formTitle').textContent = '✍️ 写句子';
+  document.getElementById('addBtn').innerHTML = '✏️ 写下它';
+  document.getElementById('cancelEditBtn').style.display = 'none';
+  editMode = false;
+  setSelectedCategories([]);
+}
+
+function resetFormAfterAdd(){
+  resetForm();
+  document.getElementById('hitokoto').focus();
+}
+
+function fillEditForm(s){
+  document.getElementById('hitokoto').value = s.hitokoto;
+  document.getElementById('author').value = s.author;
+  document.getElementById('commit_from').value = s.commit_from || '';
+  document.getElementById('editId').value = s.id;
+  document.getElementById('formTitle').textContent = '✏️ 编辑句子 #' + s.id;
+  document.getElementById('addBtn').innerHTML = '💾 保存修改';
+  document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+  editMode = true;
+  setSelectedCategories(s.categories || []);
+  switchTab('add');
+  document.getElementById('formCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function switchTab(tabName){
+  const tab = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+  if(tab) tab.click();
+}
+
+async function confirmDeleteSentence(id){
+  const ok = await openModal('删除句子','删除后不可恢复，确定吗？','删除',true);
+  if(!ok) return;
+  try{
+    const res = await fetch(`/api/sentences/${id}`,{method:'DELETE'});
+    if(res.ok){
+      showToast('已删除','success');
+      await loadSentences(currentPage);
+      await loadCategories();
+      loadRandom();
+    }else{
+      showToast('删除失败','error');
     }
+  }catch(e){showToast('网络错误','error')}
+}
 
-    async function deleteSentence(id) {
-        if (!confirm('删除后不可恢复，确定吗？')) return;
-        await fetch(`/api/sentences/${id}`, { method: 'DELETE' });
-        loadSentences(currentPage);
-        loadCategories(); // 刷新分类列表（可能因删除句子导致某些分类无句子，但仍然保留）
+/* ===== Import / Export ===== */
+async function importFile(replace=false){
+  const fileInput = document.getElementById('fileInput');
+  const file = fileInput.files[0];
+  if(!file){showToast('请选择文件','error');return}
+  const formData = new FormData();
+  formData.append('file',file);
+  formData.append('replace',replace);
+  try{
+    const res = await fetch('/api/import',{method:'POST',body:formData});
+    if(res.ok){
+      const result = await res.json();
+      showToast(`导入完成！共 ${result.imported} 条`,'success');
+      await loadSentences(1);
+      await loadCategories();
+      loadRandom();
+    }else{
+      showToast('导入失败','error');
     }
+  }catch(e){showToast('网络错误','error')}
+  fileInput.value = '';
+}
 
-    function fillEditForm(s) {
-        document.getElementById('hitokoto').value = s.hitokoto;
-        document.getElementById('author').value = s.author;
-        document.getElementById('commit_from').value = s.commit_from || '';
-        document.getElementById('editId').value = s.id;
-        document.getElementById('addBtn').innerText = '✏️ 保存修改';
-        document.getElementById('cancelEditBtn').style.display = 'inline-block';
-        editMode = true;
-        // 设置已选中的分类
-        setSelectedCategories(s.categories || []);
-    }
+async function confirmReplaceImport(){
+  const ok = await openModal('替换导入','将清空现有所有句子，确定吗？','替换导入',true);
+  if(!ok) return;
+  document.getElementById('fileInput').click();
+  // Override onchange to use replace mode
+  document.getElementById('fileInput').onchange = (e) => {
+    if(e.target.files[0]) importFile(true);
+    document.getElementById('fileInput').onchange = (e) => {if(e.target.files[0]) importFile(false);};
+  };
+}
 
-    async function saveOrUpdate() {
-        const hitokoto = document.getElementById('hitokoto').value.trim();
-        let author = document.getElementById('author').value.trim();
-        const commit_from = document.getElementById('commit_from').value.trim() || 'web';
-        const categories = getSelectedCategories();
+function exportData(){
+  window.location.href = '/api/export';
+  showToast('开始下载…','info');
+}
 
-        if (!hitokoto) {
-            alert('句子内容不能为空');
-            return;
-        }
-        if (author === '') author = '默认作者';
+/* ===== Utilities ===== */
+function escHtml(str){
+  return String(str).replace(/[&<>"']/g, m => {
+    if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;';
+    if(m==='"') return '&quot;'; if(m==="'") return '&#39;'; return m;
+  });
+}
 
-        const editId = document.getElementById('editId').value;
-        const payload = { hitokoto, author, categories, commit_from };
-        let url = '/api/sentences';
-        let method = 'POST';
-        if (editId) {
-            url = `/api/sentences/${editId}`;
-            method = 'PUT';
-        }
-        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        if (res.ok) {
-            resetForm();
-            loadSentences(currentPage);
-            loadCategories(); // 刷新分类列表（可能新增了分类）
-        } else {
-            alert('操作失败，请检查网络或后端');
-        }
-    }
-
-    function resetForm() {
-        document.getElementById('hitokoto').value = '';
-        document.getElementById('author').value = '';
-        document.getElementById('commit_from').value = 'web';
-        document.getElementById('editId').value = '';
-        document.getElementById('addBtn').innerText = '➕ 添加句子';
-        document.getElementById('cancelEditBtn').style.display = 'none';
-        editMode = false;
-        // 清空复选框选择
-        setSelectedCategories([]);
-    }
-
-    // 新增分类
-    async function addNewCategory() {
-        const name = prompt('请输入分类名称（例如：励志、古风）');
-        if (!name || !name.trim()) return;
-        const res = await fetch(`/api/categories?name=${encodeURIComponent(name.trim())}`, { method: 'POST' });
-        if (res.ok) {
-            await loadCategories();
-            // 如果当前没有编辑中的句子，也可以不清空；自动刷新
-        } else {
-            alert('添加失败，可能分类已存在');
-        }
-    }
-
-    async function deleteCategory(name) {
-        if (!confirm(`确定要删除分类“${name}”吗？该操作不会删除句子，只是移除句子的这个分类标记。`)) return;
-        const res = await fetch(`/api/categories/${encodeURIComponent(name)}`, { method: 'DELETE' });
-        if (res.ok) {
-            await loadCategories();
-            // 重新加载句子列表以刷新显示
-            loadSentences(currentPage);
-        } else {
-            alert('删除失败');
-        }
-    }
-
-    // 导入导出
-    async function importFile(replace = false) {
-        const fileInput = document.getElementById('fileInput');
-        const file = fileInput.files[0];
-        if (!file) return;
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('replace', replace);
-        const res = await fetch('/api/import', { method: 'POST', body: formData });
-        const result = await res.json();
-        alert(`导入完成，成功 ${result.imported} 条`);
-        loadSentences(1);
-        loadCategories();
-        fileInput.value = '';
-    }
-    function exportData() {
-        window.location.href = '/api/export';
-    }
-
-    function escapeHtml(str) {
-        return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; });
-    }
-
-    // 绑定事件
-    document.getElementById('addBtn').onclick = saveOrUpdate;
-    document.getElementById('cancelEditBtn').onclick = resetForm;
-    document.getElementById('importBtn').onclick = () => document.getElementById('fileInput').click();
-    document.getElementById('replaceImportBtn').onclick = () => { if(confirm('替换导入将清空现有所有句子，确定吗？')) importFile(true); };
-    document.getElementById('exportBtn').onclick = exportData;
-    document.getElementById('fileInput').onchange = () => importFile(false);
-    document.getElementById('addCategoryBtn').onclick = addNewCategory;
-
-    // 初始化
-    loadCategories();
-    loadSentences(1);
+/* ===== Bind Events ===== */
+document.getElementById('addBtn').onclick = saveOrUpdate;
+document.getElementById('cancelEditBtn').onclick = resetForm;
+document.getElementById('addSentenceNavBtn').onclick = ()=>{
+  resetForm();
+  switchTab('add');
+  document.getElementById('formCard').scrollIntoView({behavior:'smooth',block:'start'});
+};
 </script>
 </body>
 </html>

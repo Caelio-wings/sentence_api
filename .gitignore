@@ -150,6 +150,10 @@ activemq-data/
 # Project config (may contain database credentials)
 config.toml
 
+# SQLite database (runtime data)
+sentences.db
+*.db
+
 # Environments
 .env
 .envrc
