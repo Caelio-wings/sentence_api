@@ -3,21 +3,23 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import json
-import database as db
-import config
+from pathlib import Path
+from sentence_api import database as db
+from sentence_api import config
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init_db()
     yield
 
+_HERE = Path(__file__).parent
+
 app = FastAPI(lifespan=lifespan, title="多分类句子API")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=str(_HERE / "static")), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    with open("static/index.html", "r", encoding="utf-8") as f:
-        return f.read()
+    return (_HERE / "static" / "index.html").read_text(encoding="utf-8")
 
 # ---------- API ----------
 @app.get("/api/random")
@@ -121,4 +123,4 @@ async def export_sentences():
 if __name__ == "__main__":
     import uvicorn
     srv = config.get_server_config()
-    uvicorn.run("main:app", host=srv["host"], port=srv["port"])
+    uvicorn.run("sentence_api.main:app", host=srv["host"], port=srv["port"])

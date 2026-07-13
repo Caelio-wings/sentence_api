@@ -2,7 +2,7 @@ import time
 from contextlib import contextmanager
 from typing import List, Dict, Optional
 
-from config import get_db_config
+from sentence_api.config import get_db_config
 
 _backend: str | None = None
 _config: dict | None = None

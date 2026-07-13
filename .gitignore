@@ -213,6 +213,9 @@ tempCodeRunnerFile.py
 # Ruff stuff:
 .ruff_cache/
 
+# Reasonix agent data
+.reasonix/
+
 # PyPI configuration file
 .pypirc
 
