@@ -407,7 +407,7 @@ tbody tr:hover{background:#e8e5f7}
     <h3 id="modalTitle">确认</h3>
     <p id="modalBody">确定要执行此操作吗？</p>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-ghost" onclick="resolveModal(false);closeModal()">取消</button>
       <button class="btn btn-danger" id="modalConfirmBtn" onclick="closeModal()">确定</button>
     </div>
   </div>
@@ -471,15 +471,17 @@ function openModal(title, body, confirmText='确定', danger=false){
     btn.className = danger ? 'btn btn-danger' : 'btn btn-primary';
     document.getElementById('modalOverlay').classList.add('open');
     modalResolve = resolve;
-    btn.onclick = ()=>{ closeModal(); resolve(true); };
+    btn.onclick = ()=>{ resolve(true); closeModal(); };
   });
 }
 function closeModal(){
   document.getElementById('modalOverlay').classList.remove('open');
-  if(modalResolve){modalResolve(false);modalResolve=null}
+}
+function resolveModal(value){
+  if(modalResolve){modalResolve(value);modalResolve=null}
 }
 document.getElementById('modalOverlay').onclick = (e) => {
-  if(e.target === e.currentTarget) closeModal();
+  if(e.target === e.currentTarget) { resolveModal(false); closeModal(); }
 };
 
 /* ===== Random Quote ===== */

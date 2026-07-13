@@ -1,9 +1,9 @@
 [project]
 name = "sentence-api"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.1.2"
+description = "一言句子管理 API"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.136.3",
     "jinja2>=3.1.6",
@@ -14,3 +14,17 @@ dependencies = [
 
 [project.optional-dependencies]
 postgresql = ["psycopg2-binary"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+only-include = [
+    "main.py",
+    "database.py",
+    "config.py",
+    "app.py",
+    "convert.py",
+    "static",
+]
