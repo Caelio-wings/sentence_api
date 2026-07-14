@@ -9,18 +9,20 @@ else:
 _config: dict | None = None
 
 
-def load_config(path: str = "config.toml") -> dict:
+def load_config(path: str | None = None) -> dict:
     global _config
-    if not os.path.exists(path):
-        _config = {
-            "database": {
-                "type": "sqlite",
-                "sqlite": {"path": "sentences.db"},
-            }
+    candidates = [path] if path else ["config.toml", "config/config.toml"]
+    for p in candidates:
+        if p and os.path.exists(p):
+            with open(p, "rb") as f:
+                _config = tomllib.load(f)
+            return _config
+    _config = {
+        "database": {
+            "type": "sqlite",
+            "sqlite": {"path": "sentences.db"},
         }
-        return _config
-    with open(path, "rb") as f:
-        _config = tomllib.load(f)
+    }
     return _config
 
 
