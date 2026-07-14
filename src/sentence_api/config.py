@@ -11,7 +11,7 @@ _config: dict | None = None
 
 def load_config(path: str | None = None) -> dict:
     global _config
-    candidates = [path] if path else ["config.toml", "config/config.toml"]
+    candidates = [path] if path else ["config/config.toml", "config.toml"]
     for p in candidates:
         if p and os.path.exists(p):
             with open(p, "rb") as f:
