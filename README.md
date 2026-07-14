@@ -5,11 +5,12 @@
 
 ## ✨ 特性
 
-- 🗄️ **轻量后端**：FastAPI + SQLite，单文件部署，资源占用极小
-- 🏷️ **多分类支持**：一句话可属于多个分类（如“励志”、“古风”）
+- 🗄️ **轻量后端**：FastAPI + SQLite，资源占用极小
+- 🏷️ **多分类支持**：一句话可属于多个分类（如"励志"、"古风"）
 - 🖥️ **网页管理界面**：美观的卡片式 UI，支持句子增删改查、分类管理、导入导出
 - 🔌 **API 接口**：符合 RESTful 风格，支持按分类随机获取句子
 - 📂 **数据导入/导出**：JSON 格式，便于迁移、备份
+- 📦 **单命令启动**：安装后直接运行 `sentence-api` 即可
 - 🐧 **Linux 服务**：提供 systemd 配置，实现开机自启和进程守护
 
 ## 🛠️ 技术栈
@@ -17,58 +18,108 @@
 | 角色       | 技术                                 |
 | ---------- | ------------------------------------ |
 | 后端框架   | FastAPI                              |
-| 数据库     | SQLite3                              |
+| 数据库     | SQLite3 / PostgreSQL                 |
 | 前端       | 原生 HTML / CSS / JavaScript         |
+| 构建工具   | [uv](https://docs.astral.sh/uv/)     |
 | 部署       | Uvicorn + systemd（Linux）           |
 
-## 📦 安装与运行
+## 📦 安装
 
-### 1. 克隆或下载项目
+### 前提
 
-将项目文件（`main.py`, `database.py`, `static/` 目录）放置在一个文件夹中，例如 `/home/yourname/sentence_api`。
+- Python >= 3.12
+- 推荐使用 [uv](https://docs.astral.sh/uv/) 管理 Python 与依赖
 
-### 2. 安装 Python 依赖
-
-```bash
-pip install fastapi uvicorn
-````
-
-（可选）使用虚拟环境：
+### 方式一：pip 安装（推荐）
 
 ```bash
-python -m venv venv
-source venv/bin/activate   # Linux/macOS
-venv\Scripts\activate      # Windows
-pip install fastapi uvicorn
+# 从本地 wheel 安装
+pip install dist/sentence_api-*.whl
+
+# 启动服务
+sentence-api
 ```
 
-### 3. 启动服务
-
-#### 开发模式（带自动重载）
+### 方式二：源码运行
 
 ```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+git clone <repo-url>
+cd sentence_api
+uv sync
+uv run sentence-api
 ```
 
-#### 生产模式（后台运行）
+### 方式三：使用虚拟环境
 
 ```bash
-nohup uvicorn main:app --host 0.0.0.0 --port 8000 > uvicorn.log 2>&1 &
+python -m venv .venv
+source .venv/bin/activate     # Linux/macOS
+.venv\Scripts\activate        # Windows
+pip install fastapi uvicorn python-multipart jinja2 psycopg2-binary
+uvicorn sentence_api.main:app --host 0.0.0.0 --port 8000
 ```
 
-#### 使用提供的 Linux 脚本
+### 构建分发包
 
 ```bash
-chmod +x sentence_api.sh
-./sentence_api.sh start   # 启动
-./sentence_api.sh stop    # 停止
-./sentence_api.sh restart # 重启
-./sentence_api.sh status  # 状态
+uv build
+# 产物在 dist/ 目录下
 ```
 
-### 4. 访问 Web 管理界面
+## ⚙️ 配置
 
-浏览器打开 `http://你的服务器IP:8000` 即可使用。
+配置文件位于项目目录下的 `config/config.toml`（优先）或 `config.toml`（兼容）。  
+参考 `config/config.example.toml` 创建：
+
+```toml
+[server]
+host = "0.0.0.0"
+port = 8000
+
+[database]
+type = "sqlite"          # "sqlite" 或 "postgresql"
+
+[database.sqlite]
+path = "sentences.db"    # SQLite 文件路径
+
+[database.postgresql]
+host = "localhost"
+port = 5432
+database = "sentences"
+user = "postgres"
+password = ""
+```
+
+不创建配置文件则默认使用 SQLite + `sentences.db`。
+
+## 🚀 启动服务
+
+### 使用 CLI 命令（安装后）
+
+```bash
+sentence-api
+```
+
+### 开发模式（带自动重载）
+
+```bash
+uvicorn sentence_api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### 生产模式（后台运行）
+
+```bash
+nohup sentence-api > uvicorn.log 2>&1 &
+```
+
+浏览器打开 `http://你的服务器IP:8000` 即可使用 Web 管理界面。
+
+### API 文档
+
+服务启动后 FastAPI 自动生成交互式文档：
+
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
 
 ## 🚀 部署为 systemd 服务（推荐）
 
@@ -88,13 +139,19 @@ After=network.target
 [Service]
 Type=simple
 User=你的用户名
-WorkingDirectory=/home/你的用户名/sentence_api
-ExecStart=/home/你的用户名/sentence_api/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/你的用户名/.local/bin/sentence-api
 Restart=on-failure
 RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
+```
+
+如果使用虚拟环境：
+
+```ini
+ExecStart=/home/你的用户名/sentence_api/.venv/bin/sentence-api
 ```
 
 ### 启动并设置开机自启
@@ -112,16 +169,9 @@ sudo systemctl status sentence-api
 sudo journalctl -u sentence-api -f
 ```
 
-## 📚 API 文档
+## 📚 API 接口
 
-服务启动后，FastAPI 自动生成交互式文档：
-
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-### 主要接口
-
-#### 1. 随机获取句子
+### 1. 随机获取句子
 
 ```text
 GET /api/random
@@ -129,8 +179,8 @@ GET /api/random
 
 **参数**（可选）：
 
-| 参数名 | 类型 | 说明 |
-| --- | --- | --- |
+| 参数名   | 类型   | 说明                     |
+| -------- | ------ | ------------------------ |
 | category | string | 分类名，例如 `category=励志` |
 
 **示例响应**：
@@ -147,13 +197,13 @@ GET /api/random
 }
 ```
 
-#### 2. 获取句子列表（分页）
+### 2. 获取句子列表（分页）
 
 ```text
 GET /api/sentences?page=1&limit=20
 ```
 
-#### 3. 添加句子
+### 3. 添加句子
 
 ```text
 POST /api/sentences
@@ -170,39 +220,37 @@ POST /api/sentences
 }
 ```
 
-#### 4. 更新句子
+### 4. 更新句子
 
 ```text
 PUT /api/sentences/{id}
 ```
 
-请求体同添加。
-
-#### 5. 删除句子
+### 5. 删除句子
 
 ```text
 DELETE /api/sentences/{id}
 ```
 
-#### 6. 获取所有分类
+### 6. 获取所有分类
 
 ```text
 GET /api/categories
 ```
 
-#### 7. 新增分类
+### 7. 新增分类
 
 ```text
 POST /api/categories?name=分类名
 ```
 
-#### 8. 删除分类
+### 8. 删除分类
 
 ```text
 DELETE /api/categories/{name}
 ```
 
-#### 9. 批量导入（JSON 文件）
+### 9. 批量导入（JSON 文件）
 
 ```text
 POST /api/import
@@ -211,13 +259,11 @@ POST /api/import
 - 表单参数 `file`: JSON 数组文件
 - 表单参数 `replace`: `true` 或 `false`（是否清空现有数据）
 
-#### 10. 导出所有句子
+### 10. 导出所有句子
 
 ```text
 GET /api/export
 ```
-
-返回 JSON 文件下载。
 
 ## 📂 数据格式
 
@@ -237,7 +283,7 @@ GET /api/export
 ```
 
 - `created_at` 和 `length` 可选，导入时会自动补全
-- 若未提供 `categories`，将自动归为“默认分类”
+- 若未提供 `categories`，将自动归为"默认分类"
 
 ## 🎨 前端管理界面功能
 
@@ -257,14 +303,6 @@ GET /api/export
 
 MIT License
 
-## 🤝 贡献
-
-欢迎提交 Issue 或 Pull Request。
-
 ---
 
 **Enjoy!** 🎉
-
-```text
-
-```
