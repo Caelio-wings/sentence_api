@@ -121,6 +121,10 @@ async def export_sentences():
 
 
 if __name__ == "__main__":
+    run()
+
+def run():
+    """启动 uvicorn server，供 CLI entry point 和 app.py 使用"""
     import uvicorn
     srv = config.get_server_config()
     uvicorn.run("sentence_api.main:app", host=srv["host"], port=srv["port"])
